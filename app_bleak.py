@@ -1302,44 +1302,7 @@ def subjects_page():
     if attendance_system.current_subject_id:
         current_subject = attendance_system.get_subject_by_id(attendance_system.current_subject_id)
     
-    # Debug output
-    logger.info(f"DEBUG: subjects_page - subjects count: {len(subjects)}")
-    for i, subject in enumerate(subjects):
-        logger.info(f"DEBUG: Subject {i+1}: {subject} (id type: {type(subject.get('id'))})")
-    logger.info(f"DEBUG: current_subject_id: {attendance_system.current_subject_id}")
-    logger.info(f"DEBUG: current_subject: {current_subject}")
-    
-    # Debug data before rendering
-    logger.info(f"DEBUG subjects_page: Found {len(subjects)} subjects")
-    for i, subject in enumerate(subjects):
-        logger.info(f"DEBUG subject {i}: {subject}")
-    
-    # Check if debug mode requested
-    debug_param = request.args.get('debug')
-    logger.info(f"DEBUG: request.args = {dict(request.args)}")
-    logger.info(f"DEBUG: debug_param = '{debug_param}', type = {type(debug_param)}")
-    
-    # Force debug response for testing
-    if 'debug' in request.args:
-        logger.info("DEBUG: Forcing JSON response")
-        return jsonify({
-            'subjects': subjects,
-            'current_subject': current_subject,
-            'subjects_count': len(subjects),
-            'first_subject': subjects[0] if subjects else None,
-            'debug_test': 'working'
-        })
-    else:
-        logger.info(f"DEBUG: Rendering template, request.args = {dict(request.args)}")
-    
     return render_template('subjects.html', subjects=subjects, current_subject=current_subject)
-
-@app.route('/test_subjects_debug')
-def test_subjects_debug():
-    """Test route to debug subject template rendering"""
-    subjects = attendance_system.get_subjects()
-    logger.info(f"TEST: About to render template with subjects: {subjects}")
-    return render_template('test_subjects.html', subjects=subjects)
 
 @app.route('/api/debug_subjects', methods=['GET'])
 def debug_subjects():
