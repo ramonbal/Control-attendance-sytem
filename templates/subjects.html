@@ -120,15 +120,15 @@
                             <div class="col-auto">
                                 <div class="subject-actions">
                                     {% if not current_subject or subject.id != current_subject.id %}
-                                    <button class="btn btn-primary btn-sm" onclick="setCurrentSubject({{ subject.id }})">
+                                    <button class="btn btn-primary btn-sm set-current-btn" data-subject-id="{{ subject.id }}">
                                         <i class="fas fa-check"></i> Select
                                     </button>
                                     {% endif %}
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="viewAttendance({{ subject.id }})">
+                                    <button class="btn btn-outline-secondary btn-sm view-attendance-btn" data-subject-id="{{ subject.id }}">
                                         <i class="fas fa-users"></i> View Attendance
                                     </button>
                                     {% if subjects|length > 1 %}
-                                    <button class="btn btn-outline-danger btn-sm" onclick="confirmDeleteSubject({{ subject.id }}, '{{ subject.subject_name }}')">
+                                    <button class="btn btn-outline-danger btn-sm delete-subject-btn" data-subject-id="{{ subject.id }}" data-subject-name="{{ subject.name }}">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>
                                     {% endif %}
@@ -185,6 +185,34 @@
             .catch(error => {
                 showError('Error adding subject');
                 console.error('Error:', error);
+            });
+        });
+
+        // Add event listeners for subject buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current subject buttons
+            document.querySelectorAll('.set-current-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const subjectId = this.getAttribute('data-subject-id');
+                    setCurrentSubject(subjectId);
+                });
+            });
+
+            // View attendance buttons  
+            document.querySelectorAll('.view-attendance-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const subjectId = this.getAttribute('data-subject-id');
+                    viewAttendance(subjectId);
+                });
+            });
+
+            // Delete subject buttons
+            document.querySelectorAll('.delete-subject-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const subjectId = this.getAttribute('data-subject-id');
+                    const subjectName = this.getAttribute('data-subject-name');
+                    confirmDeleteSubject(subjectId, subjectName);
+                });
             });
         });
 
