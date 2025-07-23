@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code - {{ student[0] }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header text-center">
+                <h5><i class="fas fa-qrcode"></i> QR Code for {{ student[0] }}</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code" class="img-fluid mb-3">
+                
+                <h6>Student Information</h6>
+                <p><strong>Name:</strong> {{ student[0] }}</p>
+                <p><strong>MAC Address:</strong> <code>{{ student[1] }}</code></p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Instructions:</strong><br>
+                    Students can scan this QR code to verify their device information is correctly registered in the system.
+                </div>
+                
+                <a href="{{ url_for('students') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Students
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% for subject in subjects %}
+Subject {{ loop.index }}:
+- Raw: {{ subject }}
+- ID: {{ subject.id }}
+- Name: {{ subject.subject_name }}
+- Code: {{ subject.subject_code }}
+- Keys: {{ subject.keys() }}
+---
+{% endfor %}

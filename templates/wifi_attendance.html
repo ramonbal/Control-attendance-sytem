@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Wi-Fi Attendance Scanner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">📶 Wi-Fi Attendance Scanner</h1>
+        <p class="lead">Real-time Wi-Fi device detection for classroom attendance</p>
+    </div>
+</div>
+
+<!-- Scanner Status -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-wifi"></i> Wi-Fi Scanner Status</h5>
+            </div>
+            <div class="card-body">
+                <div id="wifiScanStatus" class="mb-3">
+                    <span class="status-indicator status-scanning"></span>
+                    <span>Scanner: Active</span>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <button class="btn btn-success btn-sm" onclick="startWifiScan()">
+                            <i class="fas fa-play"></i> Start Scan
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="stopWifiScan()">
+                            <i class="fas fa-stop"></i> Stop Scan
+                        </button>
+                    </div>
+                    <div class="col-6 text-end">
+                        <span class="badge bg-info">Devices: <span id="wifiDeviceCount">0</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> About Wi-Fi Detection</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li><i class="fas fa-check text-success"></i> Detects devices connected to classroom Wi-Fi</li>
+                    <li><i class="fas fa-check text-success"></i> More reliable than Bluetooth for modern phones</li>
+                    <li><i class="fas fa-check text-success"></i> Works with all Wi-Fi enabled devices</li>
+                    <li><i class="fas fa-exclamation-triangle text-warning"></i> Students must be on same network</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detected Devices -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-network-wired"></i> Detected Wi-Fi Devices</h5>
+                <div>
+                    <span class="text-muted small">Last updated: <span id="lastUpdate">Never</span></span>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="refreshWifiDevices()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="wifiDevicesContainer">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Scanning for Wi-Fi devices...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.device-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.device-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.device-registered {
+    border-left: 4px solid #28a745;
+    background-color: #f8fff9;
+}
+
+.device-unregistered {
+    border-left: 4px solid #6c757d;
+    background-color: #f8f9fa;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-scanning {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.status-stopped {
+    background-color: #dc3545;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+</style>
+
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+let socket = io();
+let wifiScanning = true;
+
+socket.on('connect', function() {
+    console.log('Connected to server for Wi-Fi scanning');
+    updateWifiScanStatus();
+});
+
+socket.on('wifi_device_update', function(data) {
+    console.log('Wi-Fi devices updated:', data);
+    updateWifiDevices(data.devices);
+    document.getElementById('wifiDeviceCount').textContent = Object.keys(data.devices).length;
+    document.getElementById('lastUpdate').textContent = data.timestamp;
+});
+
+function updateWifiDevices(devices) {
+    const container = document.getElementById('wifiDevicesContainer');
+    
+    if (Object.keys(devices).length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-search"></i> No Wi-Fi devices detected yet...
+                <br><small>Make sure devices are connected to the classroom Wi-Fi network</small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    Object.entries(devices).forEach(([mac, device]) => {
+        const isRegistered = device.registered;
+        const cardClass = isRegistered ? 'device-registered' : 'device-unregistered';
+        const statusIcon = isRegistered ? 'fas fa-user-check text-success' : 'fas fa-question-circle text-muted';
+        
+        html += `
+            <div class="device-card ${cardClass}">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="mb-1">
+                            <i class="${statusIcon}"></i> 
+                            ${device.device_name || 'Unknown Device'}
+                        </h6>
+                        <small class="text-muted">MAC: ${mac}</small>
+                        ${device.ip_address ? `<br><small class="text-muted">IP: ${device.ip_address}</small>` : ''}
+                    </div>
+                    <div class="col-md-3">
+                        ${isRegistered ? 
+                            `<strong class="text-success">${device.student_name}</strong><br><small>ID: ${device.student_id}</small>` : 
+                            '<span class="text-muted">Unregistered Device</span>'
+                        }
+                    </div>
+                    <div class="col-md-3 text-end">
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> Last seen: ${device.last_seen}
+                        </small>
+                        ${!isRegistered ? 
+                            `<br><button class="btn btn-outline-primary btn-sm mt-1" onclick="addWifiDevice('${mac}', '${device.device_name}')">
+                                <i class="fas fa-plus"></i> Register
+                            </button>` : ''
+                        }
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function startWifiScan() {
+    fetch('/api/start_wifi_scan', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            wifiScanning = true;
+            updateWifiScanStatus();
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function stopWifiScan() {
+    fetch('/api/stop_wifi_scan', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            wifiScanning = false;
+            updateWifiScanStatus();
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function updateWifiScanStatus() {
+    const statusElement = document.getElementById('wifiScanStatus');
+    const indicator = statusElement.querySelector('.status-indicator');
+    const text = statusElement.querySelector('span:last-child');
+    
+    if (wifiScanning) {
+        indicator.className = 'status-indicator status-scanning';
+        text.textContent = 'Scanner: Active';
+    } else {
+        indicator.className = 'status-indicator status-stopped';
+        text.textContent = 'Scanner: Stopped';
+    }
+}
+
+function refreshWifiDevices() {
+    fetch('/api/wifi_devices')
+        .then(response => response.json())
+        .then(devices => {
+            updateWifiDevices(devices);
+            document.getElementById('wifiDeviceCount').textContent = Object.keys(devices).length;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error refreshing Wi-Fi devices:', error);
+        });
+}
+
+function addWifiDevice(mac, deviceName) {
+    const studentId = prompt(`Register this Wi-Fi device?\n\nDevice: ${deviceName}\nMAC: ${mac}\n\nEnter Student ID:`);
+    if (studentId) {
+        // This would need a backend endpoint to update student records with Wi-Fi MAC
+        alert('Wi-Fi device registration feature coming soon!\n\nFor now, please add the Wi-Fi MAC address manually in the student management page.');
+    }
+}
+
+// Initial load
+setTimeout(() => {
+    refreshWifiDevices();
+}, 2000);
+</script>
+{% endblock %}

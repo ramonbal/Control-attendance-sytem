@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Add Student - Bluetooth Attendance{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-plus"></i> Add New Student</h5>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Student Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="student_id" class="form-label">Student ID</label>
+                        <input type="text" class="form-control" id="student_id" name="student_id" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="mac_address" class="form-label">Bluetooth MAC Address</label>
+                        <input type="text" class="form-control" id="mac_address" name="mac_address" 
+                               placeholder="XX:XX:XX:XX:XX:XX" pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$">
+                        <div class="form-text">Format: XX:XX:XX:XX:XX:XX (optional, for Bluetooth detection)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="wifi_mac_address" class="form-label">Wi-Fi MAC Address</label>
+                        <input type="text" class="form-control" id="wifi_mac_address" name="wifi_mac_address" 
+                               placeholder="XX:XX:XX:XX:XX:XX" pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$">
+                        <div class="form-text">Format: XX:XX:XX:XX:XX:XX (optional, for Wi-Fi detection)</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('students') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Add Student</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6><i class="fas fa-lightbulb"></i> Quick Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check-circle text-success"></i> Bluetooth MAC: Enable Bluetooth discovery on student's phone</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Wi-Fi MAC: Student must be connected to classroom Wi-Fi</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Use the Dashboard scanner to find MAC addresses</li>
+                    <li><i class="fas fa-check-circle text-success"></i> At least one MAC address should be provided</li>
+                    <li><i class="fas fa-check-circle text-success"></i> MAC addresses are unique to each device</li>
+                    <li><i class="fas fa-check-circle text-success"></i> Students should keep Bluetooth enabled during class</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

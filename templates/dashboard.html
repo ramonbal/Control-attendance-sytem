@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Bluetooth Attendance{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Classroom Attendance Dashboard</h1>
+            <div>
+                <button id="startScan" class="btn btn-success me-2">
+                    <i class="fas fa-play"></i> Start Scanning
+                </button>
+                <button id="stopScan" class="btn btn-danger">
+                    <i class="fas fa-stop"></i> Stop Scanning
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-radar"></i> Bluetooth Scanner Status</h5>
+            </div>
+            <div class="card-body">
+                <div id="scanStatus" class="mb-3">
+                    <span class="status-indicator status-absent"></span>
+                    <span>Scanner: Stopped</span>
+                </div>
+                <div id="lastUpdate">
+                    <small class="text-muted">Last update: Never</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-users"></i> Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h3 id="presentCount" class="text-success">0</h3>
+                        <small>Students Present</small>
+                    </div>
+                    <div class="col-4">
+                        <h3 id="totalDevices" class="text-info">0</h3>
+                        <small>Total Devices</small>
+                    </div>
+                    <div class="col-4">
+                        <h3 id="registeredCount" class="text-primary">0</h3>
+                        <small>Registered</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-mobile-alt"></i> Detected Devices</h5>
+                <div class="d-flex align-items-center">
+                    <label for="sortOrder" class="form-label me-2 mb-0">Sort by:</label>
+                    <select id="sortOrder" class="form-select form-select-sm" style="width: auto;">
+                        <option value="signal">Signal Strength</option>
+                        <option value="name">Device Name</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row" id="detectedDevices">
+                    <div class="col-12 text-center text-muted">
+                        <i class="fas fa-search fa-2x mb-3"></i>
+                        <p>Start scanning to see nearby Bluetooth devices</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log('JavaScript starting...');
+
+const socket = io();
+let isScanning = false;
+let currentDevices = {}; // Store current devices for re-sorting
+
+// Socket events
+socket.on('connect', function() {
+    console.log('Connected to server');
+});
+
+socket.on('device_update', function(data) {
+    console.log('Device update received:', Object.keys(data.devices).length, 'devices');
+    currentDevices = data.devices; // Store devices
+    updateDeviceDisplay(data.devices);
+    updateStats(data.devices);
+    updateLastUpdate(data.timestamp);
+});
+
+// Button events
+document.getElementById('startScan').addEventListener('click', function() {
+    console.log('Start scan clicked');
+    fetch('/api/start_scan', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Start scan response:', data);
+            if (data.success) {
+                isScanning = true;
+                updateScanStatus(true);
+            }
+        })
+        .catch(error => console.error('Start scan error:', error));
+});
+
+document.getElementById('stopScan').addEventListener('click', function() {
+    console.log('Stop scan clicked');
+    fetch('/api/stop_scan', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Stop scan response:', data);
+            if (data.success) {
+                isScanning = false;
+                updateScanStatus(false);
+            }
+        })
+        .catch(error => console.error('Stop scan error:', error));
+});
+
+// Sort order change event
+document.getElementById('sortOrder').addEventListener('change', function() {
+    console.log('Sort order changed to:', this.value);
+    // Re-display devices with new sort order
+    updateDeviceDisplay(currentDevices);
+});
+
+function updateScanStatus(scanning) {
+    const statusElement = document.getElementById('scanStatus');
+    if (scanning) {
+        statusElement.innerHTML = '<span class="status-indicator status-scanning"></span><span>Scanner: Active</span>';
+    } else {
+        statusElement.innerHTML = '<span class="status-indicator status-absent"></span><span>Scanner: Stopped</span>';
+    }
+}
+
+function updateDeviceDisplay(devices) {
+    try {
+        console.log('Updating device display with', Object.keys(devices).length, 'devices');
+        console.log('Device MACs:', Object.keys(devices));
+        console.log('First device sample:', Object.values(devices)[0]);
+        
+        const container = document.getElementById('detectedDevices');
+        
+        if (Object.keys(devices).length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center text-muted">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <p>No devices detected${isScanning ? '. Scanning...' : '. Start scanning to see nearby Bluetooth devices.'}</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get current sort preference
+        const sortOrder = document.getElementById('sortOrder').value;
+        
+        // Convert devices object to array for sorting
+        let deviceArray = Object.entries(devices);
+        
+        // Sort based on preference
+        deviceArray.sort((a, b) => {
+            const [macA, deviceA] = a;
+            const [macB, deviceB] = b;
+            
+            if (sortOrder === 'signal') {
+                // Sort by RSSI (stronger signal first)
+                const rssiA = deviceA.rssi !== null && deviceA.rssi !== undefined && deviceA.rssi !== 'None' ? parseInt(deviceA.rssi) : -999;
+                const rssiB = deviceB.rssi !== null && deviceB.rssi !== undefined && deviceB.rssi !== 'None' ? parseInt(deviceB.rssi) : -999;
+                
+                if (rssiB !== rssiA) {
+                    return rssiB - rssiA; // Higher RSSI first (descending)
+                }
+                // If RSSI is same, sort by name
+                return (deviceA.device_name || 'Unknown').localeCompare(deviceB.device_name || 'Unknown');
+            } else {
+                // Sort by device name
+                return (deviceA.device_name || 'Unknown').localeCompare(deviceB.device_name || 'Unknown');
+            }
+        });
+
+        let html = '';
+        const processedMacs = new Set(); // Track processed MACs to avoid duplicates
+        
+        for (const [mac, device] of deviceArray) {
+            try {
+                // Normalize MAC address for duplicate checking
+                const normalizedMac = mac.toUpperCase().replace(/-/g, ':');
+                
+                if (processedMacs.has(normalizedMac)) {
+                    console.warn('Skipping duplicate MAC in frontend:', normalizedMac);
+                    continue;
+                }
+                processedMacs.add(normalizedMac);
+                
+                const displayName = device.device_name || 'Unknown Device';
+                const statusClass = device.registered ? 'border-success' : 'border-secondary';
+                const badgeClass = device.registered ? 'bg-success' : 'bg-secondary';
+                const badgeText = device.registered ? 'Registered' : 'Unregistered';
+                
+                // Signal strength information
+                let signalInfo = '';
+                let signalClass = '';
+                if (device.rssi !== null && device.rssi !== undefined && device.rssi !== 'None') {
+                    const rssi = parseInt(device.rssi);
+                    let signalStrength = '';
+                    let signalIcon = '';
+                    
+                    if (!isNaN(rssi)) {
+                        if (rssi >= -50) {
+                            signalStrength = 'Excellent';
+                            signalIcon = 'fas fa-signal';
+                            signalClass = 'text-success';
+                        } else if (rssi >= -60) {
+                            signalStrength = 'Good';
+                            signalIcon = 'fas fa-signal';
+                            signalClass = 'text-info';
+                        } else if (rssi >= -70) {
+                            signalStrength = 'Fair';
+                            signalIcon = 'fas fa-signal';
+                            signalClass = 'text-warning';
+                        } else if (rssi >= -80) {
+                            signalStrength = 'Weak';
+                            signalIcon = 'fas fa-signal';
+                            signalClass = 'text-danger';
+                        } else {
+                            signalStrength = 'Very Weak';
+                            signalIcon = 'fas fa-signal';
+                            signalClass = 'text-muted';
+                        }
+                        
+                        signalInfo = `
+                            <p class="card-text small mb-1">
+                                <i class="${signalIcon} ${signalClass}"></i> 
+                                <span class="${signalClass}">${signalStrength} (${rssi} dBm)</span>
+                            </p>
+                        `;
+                    } else {
+                        signalInfo = `
+                            <p class="card-text small text-muted mb-1">
+                                <i class="fas fa-signal text-muted"></i> Signal: Unknown
+                            </p>
+                        `;
+                    }
+                } else {
+                    signalInfo = `
+                        <p class="card-text small text-muted mb-1">
+                            <i class="fas fa-signal text-muted"></i> Signal: Unknown
+                        </p>
+                    `;
+                }
+                
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card ${statusClass}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title text-truncate">${displayName}</h6>
+                                    <span class="badge ${badgeClass}">${badgeText}</span>
+                                </div>
+                                <p class="card-text small text-muted mb-1">
+                                    <i class="fas fa-wifi"></i> ${normalizedMac}
+                                </p>
+                                ${signalInfo}
+                                <p class="card-text small text-muted mb-0">
+                                    <i class="fas fa-clock"></i> Last seen: ${device.last_seen}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (deviceError) {
+                console.error('Error processing device:', mac, deviceError);
+            }
+        }
+        
+        console.log('Rendered', processedMacs.size, 'unique devices');
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error in updateDeviceDisplay:', error);
+        document.getElementById('detectedDevices').innerHTML = `
+            <div class="col-12 text-center text-danger">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <p>Error displaying devices. Check console for details.</p>
+            </div>
+        `;
+    }
+}
+
+function updateLastUpdate(timestamp) {
+    document.getElementById('lastUpdate').innerHTML = 
+        `<small class="text-muted">Last update: ${timestamp}</small>`;
+}
+
+function updateStats(devices) {
+    const total = Object.keys(devices).length;
+    const registered = Object.values(devices).filter(d => d.registered).length;
+    const present = registered; // Present = registered students currently detected
+    
+    document.getElementById('totalDevices').textContent = total;
+    document.getElementById('registeredCount').textContent = registered;
+    document.getElementById('presentCount').textContent = present;
+}
+
+// Load initial data
+console.log('Loading initial data...');
+
+fetch('/api/scan_status')
+    .then(response => response.json())
+    .then(status => {
+        console.log('Initial scan status:', status);
+        isScanning = status.scanning;
+        updateScanStatus(isScanning);
+    })
+    .catch(error => console.error('Error loading scan status:', error));
+
+fetch('/api/detected_devices')
+    .then(response => response.json())
+    .then(devices => {
+        console.log('Initial devices loaded:', Object.keys(devices).length);
+        currentDevices = devices; // Store devices
+        updateDeviceDisplay(devices);
+        updateStats(devices);
+    })
+    .catch(error => console.error('Error loading devices:', error));
+
+console.log('JavaScript loaded successfully');
+</script>
+{% endblock %}

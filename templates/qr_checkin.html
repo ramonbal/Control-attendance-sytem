@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check In - Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container-fluid">
+        <div class="row justify-content-center min-vh-100 align-items-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas fa-user-check fa-3x text-primary"></i>
+                        </div>
+                        
+                        <h2 class="mb-4">Check In to Class</h2>
+                        
+                        <form action="/qr_checkin/{{ session_code }}" method="post">
+                            <div class="mb-4">
+                                <label for="student_id" class="form-label">
+                                    <strong>Enter Your Student ID</strong>
+                                </label>
+                                <input type="text" 
+                                       class="form-control form-control-lg text-center" 
+                                       id="student_id" 
+                                       name="student_id" 
+                                       placeholder="e.g., S123456"
+                                       required 
+                                       autofocus>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-check"></i> Check In
+                            </button>
+                        </form>
+                        
+                        <div class="mt-4">
+                            <small class="text-muted">
+                                Session Code: <code>{{ session_code }}</code>
+                            </small>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <small>
+                                    <i class="fas fa-info-circle"></i>
+                                    Enter the student ID provided by your instructor
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // Auto-focus and improve mobile experience
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('student_id');
+        
+        // Format input as user types
+        input.addEventListener('input', function() {
+            // Convert to uppercase for consistency
+            this.value = this.value.toUpperCase();
+        });
+        
+        // Handle form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const studentId = input.value.trim();
+            if (!studentId) {
+                e.preventDefault();
+                alert('Please enter your student ID');
+                input.focus();
+            }
+        });
+    });
+    </script>
+</body>
+</html>

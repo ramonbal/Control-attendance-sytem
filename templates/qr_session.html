@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}QR Session: {{ session_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center">
+        <h1>📱 Scan to Check In</h1>
+        <h2 class="text-primary">{{ session_name }}</h2>
+        <p class="lead">Session Code: <code>{{ session_code }}</code></p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body">
+                <img src="data:image/png;base64,{{ qr_image }}" 
+                     alt="QR Code for Attendance" 
+                     class="img-fluid"
+                     style="max-width: 400px;">
+                
+                <div class="mt-4">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-camera"></i> Instructions for Students:</h5>
+                        <ol class="text-start">
+                            <li>Open your phone's camera app</li>
+                            <li>Point it at the QR code above</li>
+                            <li>Tap the link that appears</li>
+                            <li>Enter your student ID</li>
+                            <li>Tap "Check In"</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>Session Duration</h5>
+                <p class="h4 text-success">{{ duration }} minutes</p>
+                <small class="text-muted">Session will expire automatically</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>Check-ins Today</h5>
+                <p class="h4 text-primary" id="checkinCount">0</p>
+                <small class="text-muted">Students checked in</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>Status</h5>
+                <p class="h5 text-success">
+                    <i class="fas fa-check-circle"></i> Active
+                </p>
+                <small class="text-muted">Ready for check-ins</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="/qr_attendance" class="btn btn-secondary me-2">
+            <i class="fas fa-plus"></i> Create New Session
+        </a>
+        <a href="/dashboard" class="btn btn-primary me-2">
+            <i class="fas fa-chart-bar"></i> View Dashboard
+        </a>
+        <button class="btn btn-success" onclick="window.print()">
+            <i class="fas fa-print"></i> Print QR Code
+        </button>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .alert, .card:not(:first-child) { display: none; }
+    .card { border: none; box-shadow: none; }
+    h1, h2 { margin-bottom: 20px; }
+}
+</style>
+
+<script>
+// Auto-refresh check-in count every 30 seconds
+setInterval(function() {
+    fetch('/api/detected_devices')
+    .then(response => response.json())
+    .then(data => {
+        // This would need to be updated to get QR check-in count
+        // For now, we'll keep it simple
+    })
+    .catch(error => console.log('Refresh error:', error));
+}, 30000);
+</script>
+{% endblock %}

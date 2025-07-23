@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Import Students from Excel{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4><i class="fas fa-file-excel"></i> Import Students from Excel</h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Instructions -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Instructions:</h6>
+                        <ul class="mb-0">
+                            <li>Excel file must have columns named <strong>ID</strong> and <strong>Name</strong></li>
+                            <li>Supported formats: .xlsx, .xls</li>
+                            <li>The system will automatically detect variations like "Student ID", "Student Name", etc.</li>
+                            <li>Empty rows will be skipped</li>
+                            <li>Duplicate student IDs will be reported as errors</li>
+                        </ul>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="excel_file" class="form-label">Select Excel File:</label>
+                            <input type="file" class="form-control" id="excel_file" name="excel_file" 
+                                   accept=".xlsx,.xls" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-upload"></i> Import Students
+                        </button>
+                        <a href="{{ url_for('students') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Students
+                        </a>
+                    </form>
+
+                    <!-- Results -->
+                    {% if result %}
+                    <div class="mt-4">
+                        {% if result.success %}
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Import Successful!</h6>
+                            <p class="mb-0">{{ result.message }}</p>
+                            <p class="mb-0"><strong>Students imported:</strong> {{ result.imported }}</p>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Import Failed!</h6>
+                            <p class="mb-0">{{ result.message }}</p>
+                        </div>
+                        {% endif %}
+
+                        {% if result.errors %}
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle"></i> Errors/Warnings:</h6>
+                            <ul class="mb-0">
+                                {% for error in result.errors %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if result.success and result.imported > 0 %}
+                        <div class="mt-3">
+                            <a href="{{ url_for('students') }}" class="btn btn-primary">
+                                <i class="fas fa-users"></i> View All Students
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Error Message -->
+                    {% if error %}
+                    <div class="alert alert-danger mt-4">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Error!</h6>
+                        <p class="mb-0">{{ error }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Sample Format -->
+                    <div class="mt-4">
+                        <h6>Sample Excel Format:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>STU001</td>
+                                        <td>John Doe</td>
+                                    </tr>
+                                    <tr>
+                                        <td>STU002</td>
+                                        <td>Jane Smith</td>
+                                    </tr>
+                                    <tr>
+                                        <td>STU003</td>
+                                        <td>Bob Johnson</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small">
+                            <i class="fas fa-lightbulb"></i> 
+                            Column names are flexible: "ID", "Student ID", "Name", "Student Name", etc. are all accepted.
+                        </p>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="mt-5 pt-4 border-top">
+                        <h6 class="text-danger">Danger Zone</h6>
+                        <p class="text-muted">This will permanently delete all students and attendance records.</p>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearAllStudents()">
+                            <i class="fas fa-trash"></i> Clear All Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function clearAllStudents() {
+    if (confirm('Are you sure you want to delete ALL students and attendance records? This cannot be undone!')) {
+        if (confirm('This will permanently delete everything. Are you absolutely sure?')) {
+            fetch('/clear_all_students', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('All students cleared successfully!');
+                    window.location.reload();
+                } else {
+                    alert('Error clearing students: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

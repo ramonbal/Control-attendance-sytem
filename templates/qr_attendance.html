@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code Attendance{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-qrcode"></i> QR Code Attendance</h1>
+        <p class="lead">Create QR codes for students to check in with their phones</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Create New QR Session</h5>
+            </div>
+            <div class="card-body">
+                <form action="/create_qr_session" method="post">
+                    <div class="mb-3">
+                        <label for="session_name" class="form-label">Session Name</label>
+                        <input type="text" class="form-control" id="session_name" name="session_name" 
+                               value="Class {{ current_time }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="duration" class="form-label">Duration (minutes)</label>
+                        <select class="form-select" id="duration" name="duration">
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60" selected>1 hour</option>
+                            <option value="120">2 hours</option>
+                            <option value="240">4 hours</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create QR Session
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>How QR Check-in Works</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li><strong>Create a session</strong> with the form on the left</li>
+                    <li><strong>Display the QR code</strong> on the projector/screen</li>
+                    <li><strong>Students scan</strong> with their phone cameras</li>
+                    <li><strong>Students enter</strong> their student ID</li>
+                    <li><strong>Attendance recorded</strong> automatically</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>📱 Works with any smartphone!</strong><br>
+                    No app installation required - just use the camera app to scan.
+                </div>
+                
+                <div class="alert alert-success">
+                    <strong>✅ Perfect for modern phones</strong><br>
+                    Solves the Bluetooth detection issue with newer devices.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="text-center">
+            <a href="/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-generate session name with current time
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const sessionName = 'Class ' + now.getFullYear() + '-' + 
+                       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(now.getDate()).padStart(2, '0') + ' ' +
+                       String(now.getHours()).padStart(2, '0') + ':' + 
+                       String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('session_name').value = sessionName;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Modal Attendance Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">📊 Multi-Modal Attendance System</h1>
+        <p class="lead">Comprehensive attendance tracking using Bluetooth, Wi-Fi, QR Codes, and Manual Check-in</p>
+        
+        <!-- Current Subject Alert -->
+        {% if current_subject %}
+        <div class="alert alert-info mb-3">
+            <i class="fas fa-book-open"></i>
+            <strong>Current Subject:</strong> {{ current_subject.subject_name }} ({{ current_subject.subject_code }})
+            <a href="/subjects" class="btn btn-sm btn-outline-primary ms-2">
+                <i class="fas fa-edit"></i> Change Subject
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-warning mb-3">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>No subject selected!</strong> 
+            <a href="/subjects" class="btn btn-sm btn-primary ms-2">
+                <i class="fas fa-book-open"></i> Select Subject
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="mb-3">
+            <span class="badge bg-primary me-2">🔵 Bluetooth</span>
+            <span class="badge bg-success me-2">📶 Wi-Fi</span>
+            <span class="badge bg-info me-2">📱 QR Code</span>
+            <span class="badge bg-warning">✋ Manual</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-dark text-white">
+            <div class="card-body text-center">
+                <h3 id="totalPresent">{{ records|selectattr('3')|list|length }}</h3>
+                <small>Students Present</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3 id="bluetoothCount">{{ records|selectattr('5', 'equalto', 'bluetooth')|list|length }}</h3>
+                <small>Bluetooth</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3 id="wifiCount">{{ records|selectattr('5', 'equalto', 'wifi')|list|length }}</h3>
+                <small>Wi-Fi</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h3 id="qrCount">{{ records|selectattr('5', 'equalto', 'qr_code')|list|length }}</h3>
+                <small>QR Check-ins</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h3 id="manualCount">{{ records|selectattr('5', 'equalto', 'manual')|list|length }}</h3>
+                <small>Manual</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h3>{{ records|list|length }}</h3>
+                <small>Total Students</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bluetooth"></i> Bluetooth Scanner</h5>
+            </div>
+            <div class="card-body">
+                <div id="scanStatus" class="mb-3">
+                    <span class="status-indicator status-scanning"></span>
+                    <span>Scanner: Active</span>
+                </div>
+                <p class="small">Detecting: <span id="deviceCount">{{ devices|length }}</span> devices</p>
+                <a href="/" class="btn btn-primary btn-sm">View Bluetooth Dashboard</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-wifi"></i> Wi-Fi Scanner</h5>
+            </div>
+            <div class="card-body">
+                <div id="wifiScanStatus" class="mb-3">
+                    <span class="status-indicator status-scanning"></span>
+                    <span>Scanner: Active</span>
+                </div>
+                <p class="small">Detecting: <span id="wifiDeviceCount">{{ wifi_devices|length }}</span> devices</p>
+                <button class="btn btn-success btn-sm" onclick="toggleWifiScanning()">Toggle Wi-Fi Scan</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-qrcode"></i> QR Code Session</h5>
+            </div>
+            <div class="card-body">
+                {% if current_qr %}
+                <div class="alert alert-success">
+                    <strong>Active:</strong> {{ current_qr.name }}<br>
+                    <small>Code: {{ current_qr.code }}</small>
+                </div>
+                {% else %}
+                <p class="text-muted">No active QR session</p>
+                {% endif %}
+                <a href="/qr_attendance" class="btn btn-info btn-sm">Manage QR Sessions</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-hand-paper"></i> Manual Check-in</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">For students with device issues</p>
+                <a href="/manual_attendance" class="btn btn-warning btn-sm">Manual Check-in</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-users"></i> Today's Attendance</h5>
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="refreshData()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                    <a href="/students" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user-plus"></i> Manage Students
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>ID</th>
+                                <th>Status</th>
+                                <th>Method</th>
+                                <th>First Detected</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>
+                                    <strong>{{ record[0] }}</strong>
+                                    {% if record[2] %}
+                                    <br><small class="text-muted">{{ record[2] }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record[1] }}</td>
+                                <td>
+                                    {% if record[3] %}
+                                    <span class="badge bg-success">Present</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Absent</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record[5] == 'bluetooth' %}
+                                    <span class="badge bg-primary"><i class="fas fa-bluetooth"></i> Bluetooth</span>
+                                    {% elif record[5] == 'qr_code' %}
+                                    <span class="badge bg-info"><i class="fas fa-qrcode"></i> QR Code</span>
+                                    {% elif record[5] == 'manual' %}
+                                    <span class="badge bg-warning"><i class="fas fa-hand-paper"></i> Manual</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record[3] %}
+                                    {{ record[3].strftime('%H:%M:%S') if record[3] else '' }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record[4] %}
+                                    {{ record[4].strftime('%H:%M:%S') if record[4] else '' }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not record[3] %}
+                                    <button class="btn btn-sm btn-outline-success" 
+                                            onclick="manualCheckIn('{{ record[1] }}')">
+                                        <i class="fas fa-check"></i> Check In
+                                    </button>
+                                    {% else %}
+                                    <small class="text-success">✓ Present</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let socket = io();
+let wifiScanning = true;
+
+socket.on('connect', function() {
+    console.log('Connected to server');
+});
+
+socket.on('device_update', function(data) {
+    document.getElementById('deviceCount').textContent = Object.keys(data.devices).length;
+});
+
+socket.on('wifi_device_update', function(data) {
+    document.getElementById('wifiDeviceCount').textContent = Object.keys(data.devices).length;
+});
+
+function refreshData() {
+    location.reload();
+}
+
+function toggleWifiScanning() {
+    const action = wifiScanning ? 'stop_wifi_scan' : 'start_wifi_scan';
+    
+    fetch(`/api/${action}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            wifiScanning = !wifiScanning;
+            updateWifiScanStatus();
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function updateWifiScanStatus() {
+    const statusElement = document.getElementById('wifiScanStatus');
+    const indicator = statusElement.querySelector('.status-indicator');
+    const text = statusElement.querySelector('span:last-child');
+    
+    if (wifiScanning) {
+        indicator.className = 'status-indicator status-scanning';
+        text.textContent = 'Scanner: Active';
+    } else {
+        indicator.className = 'status-indicator status-stopped';
+        text.textContent = 'Scanner: Stopped';
+    }
+}
+
+function manualCheckIn(studentId) {
+    if (confirm('Manually check in this student?')) {
+        fetch('/manual_checkin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'student_id=' + studentId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+Flask==2.3.3
+# PyBluez==0.23  # Commented out due to installation issues
+bleak==0.21.1
+SQLAlchemy==2.0.21
+Flask-SocketIO==5.3.6
+python-socketio==5.8.0
+eventlet==0.33.3
+qrcode==7.4.2
+Pillow==10.0.1
+asyncio
+pandas>=1.5.0
+openpyxl>=3.1.0
