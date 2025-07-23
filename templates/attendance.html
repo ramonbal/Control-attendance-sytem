@@ -7,7 +7,7 @@
     <h1>Attendance Records</h1>
     <div>
         <input type="date" id="dateFilter" class="form-control" value="{{ date }}" 
-               onchange="window.location.href='{{ url_for('attendance') }}?date=' + this.value">
+               onchange="window.location.href = '{{ url_for('attendance') }}?date=' + this.value;">
     </div>
 </div>
 
